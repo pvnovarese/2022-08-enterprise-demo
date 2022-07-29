@@ -46,8 +46,6 @@ steps:
         from_secret: anchore_cli_pass
       ANCHORE_CLI_URL:
         from_secret: anchore_cli_url
-    environment:
-    environment:
       HUB_USER:
         from_secret: hub_user
       HUB_PASSWORD: 
