@@ -17,7 +17,7 @@ steps:
       HUB_PASSWORD: 
         from_secret: hub_password
     commands:
-      - docker build -t $DRONE_REPO:drone-$DRONE_BUILD_NUMBER .
+      - docker build --pull -t $DRONE_REPO:drone-$DRONE_BUILD_NUMBER .
       - docker login -u $HUB_USER -p $HUB_PASSWORD
       - docker push $DRONE_REPO:drone-$DRONE_BUILD_NUMBER
     volumes:
