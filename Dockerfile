@@ -28,7 +28,7 @@ RUN set -ex && \
     microdnf -y clean all && \
     rm -rf /var/cache/yum /tmp 
 
-## if using the actual rpm rather than the hints file, you need these:
+## if using the actual rpm rather than the hints file, you need these: ##
 ##    yum -y install /sudo-1.8.29-5.el8.x86_64.rpm && \
 ##    rm -rf /sudo-1.8.29-5.el8.x86_64.rpm && \
 
