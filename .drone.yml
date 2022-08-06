@@ -18,7 +18,7 @@ steps:
         from_secret: hub_password
     commands:
       - docker build --pull -t $DRONE_REPO:drone-dev .
-      - docker login -u $HUB_USER -p $HUB_PASSWORD
+      - echo ${HUB_PASSWORD} | docker login -u $HUB_USER --password-stdin
       - docker push $DRONE_REPO:drone-dev
     volumes:
       - name: docker_sock
@@ -51,7 +51,7 @@ steps:
       HUB_PASSWORD: 
         from_secret: hub_password
     commands:
-      - docker login -u $HUB_USER -p $HUB_PASSWORD
+      - echo ${HUB_PASSWORD} | docker login -u $HUB_USER --password-stdin
       - docker tag $DRONE_REPO:drone-dev $DRONE_REPO:drone-prod
       - docker push $DRONE_REPO:drone-prod
       - docker run --rm -e ANCHORE_CLI_URL=$ANCHORE_CLI_URL -e ANCHORE_CLI_USER=$ANCHORE_CLI_USER -e ANCHORE_CLI_PASS=$ANCHORE_CLI_PASS anchore/engine-cli sh -c "anchore-cli image add --noautosubscribe $DRONE_REPO:drone-prod --annotation build_tool=drone --annotation build_number=$DRONE_BUILD_NUMBER"
