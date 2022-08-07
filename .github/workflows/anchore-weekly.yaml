@@ -101,12 +101,15 @@ jobs:
       run: | 
         anchore-cli image add --noautosubscribe --dockerfile ./Dockerfile ${IMAGE} --annotation actor=${GITHUB_ACTOR}
         
-    - name: Wait for Enterprise Analysis
-      run: |
-        anchore-cli image wait ${IMAGE}
+    ### don't really need to wait if you're not going to activate subs afterwards
+    #
+    #- name: Wait for Enterprise Analysis
+    #  run: |
+    #    anchore-cli image wait ${IMAGE}
         
-    - name: Activate Policy and Vulnerability Subscriptions
-      run: |
-        anchore-cli subscription activate policy_eval ${IMAGE}
-        anchore-cli subscription activate vuln_update ${IMAGE}
-
+    ### uncomment these if you want to activate policy/vuln updates
+    #
+    #- name: Activate Policy and Vulnerability Subscriptions
+    #  run: |
+    #    anchore-cli subscription activate policy_eval ${IMAGE}
+    #    anchore-cli subscription activate vuln_update ${IMAGE}
