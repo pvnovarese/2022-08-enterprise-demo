@@ -44,22 +44,22 @@ jobs:
       run: |
         docker build . --file Dockerfile --tag ${IMAGE_SHA}      
                 
-    - name: Install anchorectl CLI Tool
+    - name: Install CLI Tools
       run: |
         mkdir -p $HOME/.local/bin
         curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+                
+    - name: Generate SBOM 
+      run: |
+        syft -o spdx-json docker:${IMAGE_SHA} > ${IMAGE_SHA}.spdx.json
         
     - name: Verify Anchore Ready and Reachable
       run: |
         anchorectl system wait --timeout 10
         anchorectl system status
-        
-    - name: Generate SBOM 
-      run: |
-        syft -o spdx-json ${IMAGE_SHA} > ${IMAGE_SHA}.spdx.json
         
     - name: Push to SBOM Anchore
       run: |
