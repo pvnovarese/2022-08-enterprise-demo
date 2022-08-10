@@ -55,6 +55,7 @@ jobs:
     - name: Generate SBOM 
       run: |
         syft -o spdx-json docker:${IMAGE_SHA} > sbom.spdx.json
+        syft -o cyclonedx-json docker:${IMAGE_SHA} > sbom.cdx.json
         
     - name: Verify Anchore Ready and Reachable
       run: |
@@ -121,11 +122,19 @@ jobs:
         path: anchore-*.txt
         retention-days: 14
         
-    - name: Archive SBOM
+    - name: Archive SPDX
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: sbom
+        name: spdx-sbom
         path: sbom.spdx.json
+        retention-days: 14
+        
+    - name: Archive CycloneDX
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: cdx-sbom
+        path: sbom.cdx.json
         retention-days: 14
 
