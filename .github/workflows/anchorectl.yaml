@@ -54,7 +54,7 @@ jobs:
                 
     - name: Generate SBOM 
       run: |
-        syft -o spdx-json docker:${IMAGE_SHA} > ${IMAGE_SHA}.spdx.json
+        syft -o spdx-json docker:${IMAGE_SHA} > ${GITHUB_REPOSITORY#*/}.spdx.json
         
     - name: Verify Anchore Ready and Reachable
       run: |
@@ -126,6 +126,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: sbom
-        path: ${IMAGE_SHA}.spdx.json
+        path: ${GITHUB_REPOSITORY#*/}.spdx.json
         retention-days: 14
 
