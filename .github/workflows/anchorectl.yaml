@@ -24,8 +24,8 @@ jobs:
   Build-Scan-Promote:
     runs-on: ubuntu-latest
     env:
-      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
-      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
+      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
+      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
       ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
       IMAGE_REGISTRY: ghcr.io
     steps:
