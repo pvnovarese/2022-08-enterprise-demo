@@ -25,7 +25,6 @@ jobs:
     - name: "Set environmental variables"
       run: |
         echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}" >> $GITHUB_ENV
-        echo "SBOM=${GITHUB_REPOSITORY#*/}-$(date +%Y-%m-%d_%T).spdx.json" >> $GITHUB_ENV
     - name: Checkout Code
       uses: actions/checkout@v2
     - name: Login to Image Registry
@@ -53,7 +52,7 @@ jobs:
         docker build . --file Dockerfile --tag ${IMAGE}
     - name: Generate SBOM 
       run: |
-        syft -o spdx-json docker:${IMAGE} > ${SBOM}
+        syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
     - name: Push Drifted Docker Image
       run: |
         docker push ${IMAGE}
@@ -78,6 +77,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: sbom
-        path: ${SBOM}
+        path: sbom.spdx.json
         retention-days: 14
 
