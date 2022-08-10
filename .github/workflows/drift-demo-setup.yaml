@@ -29,17 +29,18 @@ jobs:
       uses: actions/checkout@v2
     - name: Login to Image Registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+    - name: Install CLI Tools
+      run: |
+        sudo apt-get install python3-pip
+        pip install anchorecli
+        export PATH="$HOME/.local/bin/:$PATH"
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
     - name: Build Baseline Docker Image
       run: |
         docker build . --file .drift-demo/Dockerfile-baseline --tag ${IMAGE}
     - name: Push Baseline Docker Image
       run: |
         docker push ${IMAGE}
-    - name: Install anchore-cli
-      run: |
-        sudo apt-get install python3-pip
-        pip install anchorecli
-        export PATH="$HOME/.local/bin/:$PATH"
     - name: Verify Anchore Ready and Reachable
       run: |
         anchore-cli system status 
@@ -49,6 +50,9 @@ jobs:
     - name: Build Drifted Docker Image
       run: |
         docker build . --file Dockerfile --tag ${IMAGE}
+    - name: Generate SBOM 
+      run: |
+        syft -o spdx-json docker:${IMAGE} > ${GITHUB_REPOSITORY#*/}-$(date +%Y-%m-%d_%T).spdx.json
     - name: Push Drifted Docker Image
       run: |
         docker push ${IMAGE}
@@ -68,5 +72,11 @@ jobs:
         anchore-cli subscription activate policy_eval ${IMAGE}
         anchore-cli subscription activate vuln_update ${IMAGE}
         anchore-cli subscription activate alerts ${IMAGE}
-
+    - name: Archive SBOM
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: sbom
+        path: *.spdx.json
+        retention-days: 14
 
