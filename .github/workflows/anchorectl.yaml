@@ -50,15 +50,21 @@ jobs:
         curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
         
     - name: Verify Anchore Ready and Reachable
       run: |
         anchorectl system wait --timeout 10
         anchorectl system status
         
-    - name: Generate SBOM and Push to Anchore
+    - name: Generate SBOM 
+      run: |
+        syft -o spdx-json ${IMAGE_SHA} > ${IMAGE_SHA}.spdx.json
+        
+    - name: Push to SBOM Anchore
       run: |
         anchorectl sbom upload --overwrite --wait --dockerfile ./Dockerfile ${IMAGE_SHA}
+        
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
       run: |
@@ -114,3 +120,12 @@ jobs:
         name: evaluation-report
         path: anchore-*.txt
         retention-days: 14
+        
+    - name: Archive SBOM
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: sbom
+        path: ${IMAGE_SHA}.spdx.json
+        retention-days: 14
+
