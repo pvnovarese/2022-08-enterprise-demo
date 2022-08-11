@@ -23,9 +23,9 @@ env:
   ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
   ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
-  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_USERNAME }}
+  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_PASSWORD }}
+  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_URL }}
   IMAGE_REGISTRY: ghcr.io
 
 jobs:
@@ -108,10 +108,12 @@ jobs:
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
 
-    - name: Verify Anchore Ready and Reachable
-      run: |
-        anchorectl -vv system wait --timeout 60
-        anchorectl system status
+    ### this is broken in 0.2.3 so I'm just commenting it out, if the backend isn't reachable
+    ### we'll bomb out on the image add anyway.
+    #- name: Verify Anchore Ready and Reachable
+    #  run: |
+    #    anchorectl -vv system wait --timeout 60
+    #    anchorectl system status
         
     - name: Add Image to Anchore Enterprise Queue and Wait for Analysis
       run: |
