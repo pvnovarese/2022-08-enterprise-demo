@@ -89,8 +89,13 @@ jobs:
       ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
       ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
       IMAGE_REGISTRY: ghcr.io
+      
     steps:
-
+    
+    - name: "Set environmental variables"
+      run: |
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        
     - name: Checkout Code
       uses: actions/checkout@v2
                       
