@@ -47,11 +47,12 @@ jobs:
     - name: Install CLI Tools
       run: |
         mkdir -p $HOME/.local/bin
-        curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
+        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-                
+          
+    ### ancorectl cannot yet generate spdx/cyclonedx SBOM, we still need syft for this (as of anchorectl 0.2.3)      
     - name: Generate SBOM 
       run: |
         syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
@@ -112,36 +113,34 @@ jobs:
         anchorectl system wait --timeout 10
         anchorectl system status
         
-    - name: Push to SBOM Anchore
+    - name: Add Image to Anchore Enterprise Queue and Wait for Analysis
       run: |
-        anchorectl image add --force --noautosubscribe --annotations builder=github --dockerfile ./Dockerfile ${IMAGE}
+        anchorectl image add --force --no-auto-subscribe --annotation builder=${GITHUB_ACTOR} --annotation build_tool=github --dockerfile ./Dockerfile ${IMAGE}
         anchorectl image wait ${IMAGE}
 
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
       run: |
         anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
-        
-    ### pulling policy evaluation is not implemented in anchorectl as of v0.2.0 but will be in 
-    ### the next release via "anchorectl image check ${IMAGE}"
-    ### if you need this functionality now, here's how to do it with anchore-cli
-    #- name: Install anchore-cli
-    #  run: |
-    #    sudo apt-get install python3-pip
-    #    pip install anchorecli
-    #    export PATH="$HOME/.local/bin/:$PATH"
+
+    ### optional, pull policy evaluation    
     #- name: Pull Policy Evaluation
     #  run: |
-    #    set -o pipefail
-    #    # we have to set pipefail so that we can still gate on the evaluation, otherwise piping into tee will mask the failure
-    #    # also note that for this step we use anchore-cli, anchorectl doesn't yet have "evaluate check" implemented as of 0.2.0
-    #    anchore-cli evaluate check --detail ${IMAGE_SHA} | tee anchore-policy.txt
+    #    anchorectl image check ${IMAGE}
     #
+    ### if we want to see the full output and archive it, we can do something like this:
+    ###    we have to set pipefail so that we can still gate on the evaluation, otherwise piping into tee will mask the failure
+    - name: Pull Policy Evaluation
+      run: |
+        set -o pipefail
+        anchorectl image check --fail-based-on-results --detail ${IMAGE} | tee anchore-policy.txt
+
     ### optional, if you want continuous re-evaluations
     ### still need anchore-cli for subscription operations (not yet in anchorectl 0.2.0)
-    #- name: Activate Subscriptions
-    #    anchore-cli subscription activate policy_eval ${IMAGE}
-    #    anchore-cli subscription activate vuln_update ${IMAGE}    
+    - name: Activate Subscriptions
+      run: |
+        anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
+        anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
     
     - name: Archive Vulnerabilities and Evaluation
       if: always()
