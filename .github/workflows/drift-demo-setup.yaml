@@ -15,6 +15,9 @@ env:
   ANCHORE_CLI_USER: ${{ secrets.ANCHORE_CLI_USER }}
   ANCHORE_CLI_PASS: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORE_CLI_URL: ${{ secrets.ANCHORE_CLI_URL }}
+  ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
+  ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
+  ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   IMAGE_REGISTRY: ghcr.io
 
 jobs:
@@ -102,6 +105,27 @@ jobs:
         path: sbom.cdx.json
         retention-days: 14  
         
+  Scan-Analyze:  
+    needs: Iteration-Build-Push  
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Set environmental variables"
+      run: |
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Install CLI Tools
+      run: |
+        mkdir -p $HOME/.local/bin
+        # install anchore-cli (legacy tool, this won't be necessary once anchorectl is complete)
+        sudo apt-get install python3-pip
+        pip install anchorecli
+        # install anchorctl (as of v0.2.0 some functionality is still unimplemented so we still need anchore-cli for now
+        curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
+        chmod 0755 $HOME/.local/bin/anchorectl
+        export PATH="$HOME/.local/bin/:$PATH"
+        # install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin        
     - name: Wait for Baseline Image Analysis
       run: |
         anchorectl image wait ${IMAGE}
@@ -117,6 +141,7 @@ jobs:
     - name: Pull Vulnerability List
       run: |
         anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
+    ### this step still needs anchore-cli for now, not yet implemented in anchorectl 0.2.0
     - name: Activate Policy and Vulnerability Subscriptions plus Alerts
       run: |
         anchore-cli subscription activate policy_eval ${IMAGE}
