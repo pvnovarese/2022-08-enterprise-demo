@@ -19,7 +19,7 @@ env:
 
 jobs:
 
-  Build-Push:
+  Baseline-Build-Push:
     runs-on: ubuntu-latest
     steps:
     - name: "Set environmental variables"
@@ -31,9 +31,15 @@ jobs:
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
     - name: Install CLI Tools
       run: |
+        mkdir -p $HOME/.local/bin
+        # install anchore-cli (legacy tool, this won't be necessary once anchorectl is complete)
         sudo apt-get install python3-pip
         pip install anchorecli
+        # install anchorctl (as of v0.2.0 some functionality is still unimplemented so we still need anchore-cli for now
+        curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
+        chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
+        # install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
     - name: Build Baseline Docker Image
       run: |
@@ -43,40 +49,83 @@ jobs:
         docker push ${IMAGE}
     - name: Verify Anchore Ready and Reachable
       run: |
-        anchore-cli system status 
+        anchorectl system wait --timeout 10 
     - name: Add Baseline Image to Enterprise Queue
       run: | 
-        anchore-cli image add --noautosubscribe --dockerfile ./Dockerfile ${IMAGE} --annotation build=baseline --annotation actor=${GITHUB_ACTOR}
+        anchorectl image add --force --noautosubscribe --annotations build_tool=github --annotations build=baseline --annotations actor=${GITHUB_ACTOR} --dockerfile ./Dockerfile ${IMAGE}
+        
+  Iteration-Build-Push:  
+    needs: Baseline-Build-Push  
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Set environmental variables"
+      run: |
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Login to Image Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+    - name: Install CLI Tools
+      run: |
+        mkdir -p $HOME/.local/bin
+        # install anchore-cli (legacy tool, this won't be necessary once anchorectl is complete)
+        sudo apt-get install python3-pip
+        pip install anchorecli
+        # install anchorctl (as of v0.2.0 some functionality is still unimplemented so we still need anchore-cli for now
+        curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
+        chmod 0755 $HOME/.local/bin/anchorectl
+        export PATH="$HOME/.local/bin/:$PATH"
+        # install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
     - name: Build Drifted Docker Image
       run: |
         docker build . --file Dockerfile --tag ${IMAGE}
     - name: Generate SBOM 
       run: |
         syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
+        syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
     - name: Push Drifted Docker Image
       run: |
         docker push ${IMAGE}
+    - name: Archive SPDX
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: spdx-sbom
+        path: sbom.spdx.json
+        retention-days: 14
+    - name: Archive CycloneDX
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: cdx-sbom
+        path: sbom.cdx.json
+        retention-days: 14  
+        
     - name: Wait for Baseline Image Analysis
       run: |
-        anchore-cli image wait ${IMAGE}
+        anchorectl image wait ${IMAGE}
         # I check this after the build/push of the drifted image just to save time, otherwise
         # we would just block while baseline scans even though we could be doing other stuff
     - name: Add Drifted Image to Enterprise Queue
       run: | 
-        anchore-cli image add --noautosubscribe --dockerfile ./Dockerfile ${IMAGE} --annotation build=drifted --annotation actor=${GITHUB_ACTOR}
+        anchorectl image add --force --noautosubscribe --annotations build_tool=github --annotations build=drifted --annotations actor=${GITHUB_ACTOR} --dockerfile ./Dockerfile ${IMAGE}
     - name: Wait for Drifted Image Analysis
       run: |
-        anchore-cli image wait ${IMAGE}
+        anchorectl image wait ${IMAGE}
+    ### this isn't really necessary, some people want to archive this stuff
+    - name: Pull Vulnerability List
+      run: |
+        anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
     - name: Activate Policy and Vulnerability Subscriptions plus Alerts
       run: |
         anchore-cli subscription activate policy_eval ${IMAGE}
         anchore-cli subscription activate vuln_update ${IMAGE}
-        anchore-cli subscription activate alerts ${IMAGE}
-    - name: Archive SBOM
+    - name: Archive Vulnerabilities
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: sbom
-        path: sbom.spdx.json
+        name: evaluation-report
+        path: anchore-*.txt
         retention-days: 14
 
