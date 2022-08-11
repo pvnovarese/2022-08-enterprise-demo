@@ -110,7 +110,7 @@ jobs:
 
     - name: Verify Anchore Ready and Reachable
       run: |
-        anchorectl system wait --timeout 60
+        anchorectl -vv system wait --timeout 60
         anchorectl system status
         
     - name: Add Image to Anchore Enterprise Queue and Wait for Analysis
