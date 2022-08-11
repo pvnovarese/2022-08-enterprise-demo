@@ -50,13 +50,15 @@ jobs:
         curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        ### if we want local sboms in SPDX/CycloneDX, we need syft (for now)
+        #curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           
-    ### ancorectl cannot yet generate spdx/cyclonedx SBOM, we still need syft for this (as of anchorectl 0.2.3)      
-    - name: Generate SBOM 
-      run: |
-        syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
-        syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
+    ### anchorectl cannot yet generate spdx/cyclonedx SBOM, we still need syft for this (as of anchorectl 0.2.3)      
+    ### if you need this, uncomment the syft installation in the "Install CLI Tools" step above 
+    #- name: Generate SBOM 
+    #  run: |
+    #    syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
+    #    syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
                 
     - name: Login to ghcr.io
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
@@ -65,30 +67,30 @@ jobs:
       run: |
         docker push ${IMAGE}
                 
-    - name: Archive SPDX
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: spdx-sbom
-        path: sbom.spdx.json
-        retention-days: 14
-        
-    - name: Archive CycloneDX
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: cdx-sbom
-        path: sbom.cdx.json
-        retention-days: 14
+    #- name: Archive SPDX
+    #  if: always()
+    #  uses: actions/upload-artifact@v2
+    #  with:
+    #    name: spdx-sbom
+    #    path: sbom.spdx.json
+    #    retention-days: 14
+    #    
+    #- name: Archive CycloneDX
+    #  if: always()
+    #  uses: actions/upload-artifact@v2
+    #  with:
+    #    name: cdx-sbom
+    #    path: sbom.cdx.json
+    #    retention-days: 14
 
 
   Scan-Analyze:
     needs: Build-Push  
     runs-on: ubuntu-latest
     env:
-      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-      ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+      ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
+      ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
+      ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
       IMAGE_REGISTRY: ghcr.io
       
     steps:
@@ -106,7 +108,6 @@ jobs:
         curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
     - name: Verify Anchore Ready and Reachable
       run: |
