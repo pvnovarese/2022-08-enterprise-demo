@@ -140,7 +140,7 @@ jobs:
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
       run: |
-        anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
+        anchorectl image vuln ${IMAGE} all | tee anchore-vuln.txt
     ### this step still needs anchore-cli for now, not yet implemented in anchorectl 0.2.0
     - name: Activate Policy and Vulnerability Subscriptions plus Alerts
       run: |
