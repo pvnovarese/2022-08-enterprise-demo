@@ -117,8 +117,7 @@ jobs:
         
     - name: Add Image to Anchore Enterprise Queue and Wait for Analysis
       run: |
-        anchorectl image add --force --no-auto-subscribe --annotation builder=${GITHUB_ACTOR} --annotation build_tool=github --dockerfile ./Dockerfile ${IMAGE}
-        anchorectl image wait ${IMAGE}
+        anchorectl image add --force --no-auto-subscribe --wait --annotation builder=${GITHUB_ACTOR} --annotation build_tool=github --dockerfile ./Dockerfile ${IMAGE}
 
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
@@ -126,16 +125,16 @@ jobs:
         anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
 
     ### optional, pull policy evaluation    
-    #- name: Pull Policy Evaluation
-    #  run: |
-    #    anchorectl image check ${IMAGE}
+    - name: Pull Policy Evaluation
+      run: |
+        anchorectl image check --detail ${IMAGE} | tee anchore-policy.txt
     #
     ### if we want to see the full output and archive it, we can do something like this:
     ###    we have to set pipefail so that we can still gate on the evaluation, otherwise piping into tee will mask the failure
-    - name: Pull Policy Evaluation
-      run: |
-        set -o pipefail
-        anchorectl image check --fail-based-on-results --detail ${IMAGE} | tee anchore-policy.txt
+    #- name: Pull Policy Evaluation
+    #  run: |
+    #    set -o pipefail
+    #    anchorectl image check --fail-based-on-results --detail ${IMAGE} | tee anchore-policy.txt
 
     ### optional, if you want continuous re-evaluations
     ### still need anchore-cli for subscription operations (not yet in anchorectl 0.2.0)
