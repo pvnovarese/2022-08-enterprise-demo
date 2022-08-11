@@ -18,16 +18,20 @@ on:
     inputs:
       mode:
         description: 'Manual Build'  
-        
+
+env:
+  ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
+  ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
+  ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
+  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
+  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  IMAGE_REGISTRY: ghcr.io
+
 jobs:
 
   Build-Push:
     runs-on: ubuntu-latest
-    env:
-      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-      ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
-      IMAGE_REGISTRY: ghcr.io
     steps:
     
     # we'll use the tag with the SHA for testing, once we are satisfied we'll use the tag with the
@@ -87,11 +91,6 @@ jobs:
   Scan-Analyze:
     needs: Build-Push  
     runs-on: ubuntu-latest
-    env:
-      ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-      ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-      ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
-      IMAGE_REGISTRY: ghcr.io
       
     steps:
     
@@ -111,7 +110,7 @@ jobs:
 
     - name: Verify Anchore Ready and Reachable
       run: |
-        anchorectl system wait --timeout 10
+        anchorectl system wait --timeout 60
         anchorectl system status
         
     - name: Add Image to Anchore Enterprise Queue and Wait for Analysis
