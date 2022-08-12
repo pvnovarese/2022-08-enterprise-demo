@@ -179,7 +179,7 @@ jobs:
         anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
         anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
 
-- name: Archive Vulnerabilities
+    - name: Archive Vulnerabilities
       if: always()
       uses: actions/upload-artifact@v2
       with:
