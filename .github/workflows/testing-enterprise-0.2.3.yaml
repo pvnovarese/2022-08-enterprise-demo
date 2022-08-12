@@ -12,6 +12,7 @@ env:
   ANCHORECTL_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   IMAGE_REGISTRY: ghcr.io
+  IMAGE_TAG: test
 
 jobs:
 
@@ -21,7 +22,7 @@ jobs:
     
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:experiment-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -45,7 +46,7 @@ jobs:
     
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:experiment-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -74,7 +75,7 @@ jobs:
     
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:experiment-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -125,7 +126,7 @@ jobs:
     
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:experiment-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -146,7 +147,7 @@ jobs:
     steps:
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:experiment-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -175,10 +176,10 @@ jobs:
 
     ### optional, if you want continuous re-evaluations
     ### still need anchore-cli for subscription operations (not yet in anchorectl 0.2.0)
-    - name: Activate Subscriptions
-      run: |
-        anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
-        anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
+    #- name: Activate Subscriptions
+    #  run: |
+    #    anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
+    #    anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
 
     - name: Archive Vulnerabilities
       if: always()
