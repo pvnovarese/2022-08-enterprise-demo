@@ -4,8 +4,8 @@
 name: Stable Enterprise Workflow
 
 on: 
-  #schedule:
-  #  - cron: '52 23 * * 5'
+  schedule:
+    - cron: '52 14 * * 1'
   workflow_dispatch:
     inputs:
       mode:
