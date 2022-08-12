@@ -1,4 +1,4 @@
-# 2022-08-10-demo 
+# 2022-08-enterprise-demo 
 
 
 Simple demo for Anchore Enterprise, including Jenkins, CircleCI, Codefresh, and GitHub workflow examples.
