@@ -1,14 +1,8 @@
 # This workflow checks out code, builds an image, performs a 
 # container image scan, all using only anchorectl
 #
-# todo list:
-# 1) add evaluate check (when available)
-# 2) toggle subscriptions (when available)
-# 3) (possibly) use my own anchore-tools iamge instead of ubuntu 
-#    plus installing anchorectl
-# 4) add annotation to note build tool (when available)
 
-name: Expreimental anchorectl 0.2.3  
+name: TEST anchorectl 0.2.3  
 
 on: 
   #push:
@@ -20,13 +14,11 @@ on:
         description: 'Manual Build'  
 
 env:
-  ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
-  ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
-  ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_USERNAME }}
   ANCHORECTL_PASSWORD: ${{ secrets.ANCHORECTL_PASSWORD }}
   ANCHORECTL_URL: ${{ secrets.ANCHORECTL_URL }}
   IMAGE_REGISTRY: ghcr.io
+  IMAGE_TAG: test-actl
 
 jobs:
 
@@ -38,8 +30,7 @@ jobs:
     # branch name and then actually push that to the registry (the SHA tag never gets pushed)
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE_SHA=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_SHA}" >> $GITHUB_ENV
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -50,19 +41,9 @@ jobs:
                 
     - name: Install CLI Tools
       run: |
-        mkdir -p $HOME/.local/bin
-        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
-        chmod 0755 $HOME/.local/bin/anchorectl
-        export PATH="$HOME/.local/bin/:$PATH"
+        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C /usr/local/bin/
         ### if we want local sboms in SPDX/CycloneDX, we need syft (for now)
         #curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-          
-    ### anchorectl cannot yet generate spdx/cyclonedx SBOM, we still need syft for this (as of anchorectl 0.2.3)      
-    ### if you need this, uncomment the syft installation in the "Install CLI Tools" step above 
-    #- name: Generate SBOM 
-    #  run: |
-    #    syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
-    #    syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
                 
     - name: Login to ghcr.io
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
@@ -70,7 +51,14 @@ jobs:
     - name: Push Docker Image
       run: |
         docker push ${IMAGE}
-                
+        
+    ### if you need local SBOMs, uncomment the syft installation in the "Install CLI Tools" step above 
+    #
+    #- name: Generate SBOM 
+    #  run: |
+    #    syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
+    #    syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
+    #            
     #- name: Archive SPDX
     #  if: always()
     #  uses: actions/upload-artifact@v2
@@ -91,12 +79,11 @@ jobs:
   Scan-Analyze:
     needs: Build-Push  
     runs-on: ubuntu-latest
-      
     steps:
     
     - name: "Set environmental variables"
       run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
     ### this step is only necessary if we want to push the Dockerfile to Anchore Enterprise    
     - name: Checkout Code
@@ -104,10 +91,7 @@ jobs:
                       
     - name: Install CLI Tools
       run: |
-        mkdir -p $HOME/.local/bin
-        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
-        chmod 0755 $HOME/.local/bin/anchorectl
-        export PATH="$HOME/.local/bin/:$PATH"
+        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C /usr/local/bin/
 
     ### this is broken in 0.2.3 so I'm just commenting it out, if the backend isn't reachable
     ### we'll bomb out on the image add anyway.
