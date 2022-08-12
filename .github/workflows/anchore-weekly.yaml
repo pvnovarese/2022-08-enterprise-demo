@@ -73,6 +73,8 @@ jobs:
       id: scan
       with:
         image: ${{ env.IMAGE }}
+        registry-username: ${{ env.GITHUB_ACTOR }}
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
         fail-build: false
         severity-cutoff: critical
         acs-report-enable: true
