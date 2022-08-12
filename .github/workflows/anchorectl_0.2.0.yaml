@@ -8,7 +8,7 @@
 #    plus installing anchorectl
 # 4) add annotation to note build tool (when available)
 
-name: Only anchorectl
+name: Stable anchorectl 0.2.0
 
 on: 
   #push:
@@ -18,16 +18,17 @@ on:
     inputs:
       mode:
         description: 'Manual Build'  
-        
+
+env:
+  ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
+  ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
+  ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  IMAGE_REGISTRY: ghcr.io
+
 jobs:
 
-  Build-Push:
+  Build-Scan-Promote:
     runs-on: ubuntu-latest
-    env:
-      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-      ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
-      IMAGE_REGISTRY: ghcr.io
     steps:
     
     # we'll use the tag with the SHA for testing, once we are satisfied we'll use the tag with the
@@ -42,86 +43,30 @@ jobs:
       
     - name: Build Docker Image
       run: |
-        docker build . --file Dockerfile --tag ${IMAGE}      
+        docker build . --file Dockerfile --tag ${IMAGE_SHA}      
                 
-    - name: Install CLI Tools
+    - name: Install anchorectl CLI Tool
       run: |
         mkdir -p $HOME/.local/bin
         curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-                
-    - name: Generate SBOM 
-      run: |
-        syft -o spdx-json docker:${IMAGE} > sbom.spdx.json
-        syft -o cyclonedx-json docker:${IMAGE} > sbom.cdx.json
-                
-    - name: Login to ghcr.io
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
-      
-    - name: Push Docker Image
-      run: |
-        docker push ${IMAGE}
-                
-    - name: Archive SPDX
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: spdx-sbom
-        path: sbom.spdx.json
-        retention-days: 14
-        
-    - name: Archive CycloneDX
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: cdx-sbom
-        path: sbom.cdx.json
-        retention-days: 14
-
-
-  Scan-Analyze:
-    needs: Build-Push  
-    runs-on: ubuntu-latest
-    env:
-      ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORECTL_ANCHORE_USER }}
-      ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORECTL_ANCHORE_PASSWORD }}
-      ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
-      IMAGE_REGISTRY: ghcr.io
-      
-    steps:
     
-    - name: "Set environmental variables"
-      run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
+    ### this isn't really necessary (we'll bomb out on the next step anyway if the API isn't reachable), but is useful for debugging 
+    #- name: Verify Anchore Ready and Reachable
+    #  run: |
+    #    anchorectl system wait --timeout 10
+    #    anchorectl system status
         
-    - name: Checkout Code
-      uses: actions/checkout@v2
-                      
-    - name: Install CLI Tools
+    - name: Generate SBOM and Push to Anchore
       run: |
-        mkdir -p $HOME/.local/bin
-        curl https://anchorectl-releases.s3-us-west-2.amazonaws.com/v0.2.0/anchorectl_0.2.0_linux_amd64.tar.gz | tar xzvf - -C $HOME/.local/bin/
-        chmod 0755 $HOME/.local/bin/anchorectl
-        export PATH="$HOME/.local/bin/:$PATH"
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-
-    - name: Verify Anchore Ready and Reachable
-      run: |
-        anchorectl system wait --timeout 10
-        anchorectl system status
+        anchorectl sbom upload --overwrite --wait --dockerfile ./Dockerfile ${IMAGE_SHA}
         
-    - name: Push to SBOM Anchore
-      run: |
-        anchorectl image add --force --noautosubscribe --annotations builder=github --dockerfile ./Dockerfile ${IMAGE}
-        anchorectl image wait ${IMAGE}
-
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
       run: |
         anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
-        
+    
     ### pulling policy evaluation is not implemented in anchorectl as of v0.2.0 but will be in 
     ### the next release via "anchorectl image check ${IMAGE}"
     ### if you need this functionality now, here's how to do it with anchore-cli
@@ -136,13 +81,38 @@ jobs:
     #    # we have to set pipefail so that we can still gate on the evaluation, otherwise piping into tee will mask the failure
     #    # also note that for this step we use anchore-cli, anchorectl doesn't yet have "evaluate check" implemented as of 0.2.0
     #    anchore-cli evaluate check --detail ${IMAGE_SHA} | tee anchore-policy.txt
-    #
-    ### optional, if you want continuous re-evaluations
-    ### still need anchore-cli for subscription operations (not yet in anchorectl 0.2.0)
+
+    ### policy evaluation could be used as a gate, or insert whatever other logic you want before this point,
+    ### up to now, the image hasn't been pushed anywhere, now we're going to "promote" it and push to registry
+    - name: Re-Tag Image
+      run: |
+        docker tag ${IMAGE_SHA} ${IMAGE}
+        
+    - name: Login to ghcr.io
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+      
+    - name: Push Docker Image
+      run: |
+        docker push ${IMAGE}
+        
+    - name: Add Promoted Image to Anchore Queue
+      run: |
+        anchorectl image add --force --noautosubscribe --dockerfile Dockerfile ${IMAGE}
+        ### image wait isn't really necessary
+        #anchorectl image wait ${IMAGE}
+    ### if you want to clean up, you need anchore-cli for now since subscription operations are 
+    ### also not implemented in anchorectl yet as of v0.2.0
+    #- name: Purge Unneeded Evaluation
+    #  run: |
+    #    anchore-cli subscription list --full | grep ${GITHUB_SHA} | awk '{print $4}' | xargs -n 1 anchore-cli subscription del
+    #    anchorectl image delete ${IMAGE_SHA}
+    
+    ## optional, if you want continuous re-evaluations
+    ## still need anchore-cli for subscription operations
     #- name: Activate Subscriptions
     #    anchore-cli subscription activate policy_eval ${IMAGE}
     #    anchore-cli subscription activate vuln_update ${IMAGE}    
-    
+        
     - name: Archive Vulnerabilities and Evaluation
       if: always()
       uses: actions/upload-artifact@v2
@@ -150,5 +120,3 @@ jobs:
         name: evaluation-report
         path: anchore-*.txt
         retention-days: 14
-
-
