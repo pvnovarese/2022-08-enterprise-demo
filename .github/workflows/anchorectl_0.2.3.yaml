@@ -98,6 +98,7 @@ jobs:
       run: |
         echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
         
+    ### this step is only necessary if we want to push the Dockerfile to Anchore Enterprise    
     - name: Checkout Code
       uses: actions/checkout@v2
                       
@@ -122,14 +123,14 @@ jobs:
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
       run: |
-        anchorectl image vuln ${IMAGE_SHA} all | tee anchore-vuln.txt
+        anchorectl image vuln ${IMAGE} all | tee anchore-vuln.txt
 
     ### optional, pull policy evaluation    
     - name: Pull Policy Evaluation
       run: |
         anchorectl image check --detail ${IMAGE} | tee anchore-policy.txt
-    #
-    ### if we want to see the full output and archive it, we can do something like this:
+    
+    ### if we want to gate on the policy evaluation, we can do something like this instead:
     ###    we have to set pipefail so that we can still gate on the evaluation, otherwise piping into tee will mask the failure
     #- name: Pull Policy Evaluation
     #  run: |
@@ -137,7 +138,7 @@ jobs:
     #    anchorectl image check --fail-based-on-results --detail ${IMAGE} | tee anchore-policy.txt
 
     ### optional, if you want continuous re-evaluations
-    ### still need anchore-cli for subscription operations (not yet in anchorectl 0.2.0)
+    ### this should be less obtuse in anchorectl 1.0
     - name: Activate Subscriptions
       run: |
         anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
