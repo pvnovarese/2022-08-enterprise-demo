@@ -2,7 +2,7 @@
 # (optionally breaking the build at this point if there are vulns above a given severity), pushes the
 # image to a registry, and adds it to the Anchore Enterprise queue
 
-name: Anchore Weekly
+name: DEPRECATED Anchore Weekly
 
 on: 
   #push:
