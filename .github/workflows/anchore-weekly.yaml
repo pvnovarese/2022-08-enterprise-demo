@@ -35,39 +35,12 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2      
 
-    ### unnecessary?  I think this can be removed
-    #- name: Set up Docker Buildx
-    #  uses: docker/setup-buildx-action@v1
-
     - name: Build Image
       run: |
         docker build . --file Dockerfile --tag ${IMAGE}
-
-    - name: Login to Registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
-
-    - name: Push Docker Image
-      run: |
-        docker push ${IMAGE}
-
-### not necessary
-#    - name: Archive Dockerfile
-#      uses: actions/upload-artifact@v2
-#      with:
-#        name: Dockerfile
-#        path: Dockerfile
-#        retention-days: 2
-
-  Grype-Scan-Action:
-    needs: Build-Push
-    runs-on: ubuntu-latest
-    steps:
-
-    - name: "Set environmental variables"
-      run: |
-        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}" >> $GITHUB_ENV
-
+        
     ### use the grype scan action to hydrate the Code Scanning Alerts in the Security tab
+    ### you could choose to break the build here before pushing based on results
     - name: Scan Image
       uses: anchore/scan-action@v3
       id: scan
@@ -83,6 +56,14 @@ jobs:
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: ${{ steps.scan.outputs.sarif }}
+
+    - name: Login to Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+
+    - name: Push Docker Image
+      run: |
+        docker push ${IMAGE}
+
 
 
   Enterprise-Scan:
@@ -117,7 +98,7 @@ jobs:
     #- name: Wait for Enterprise Analysis
     #  run: |
     #    anchore-cli image wait ${IMAGE}
-        
+    #   
     ### uncomment these if you want to activate policy/vuln updates
     #
     #- name: Activate Policy and Vulnerability Subscriptions
