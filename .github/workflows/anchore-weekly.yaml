@@ -1,5 +1,6 @@
-# This workflow checks out code, builds an image, performs a container image
-# scan, evaluates the image, and promotes it if it passes.
+# This workflow checks out code, builds an image, generates SARIF format vuln report for Github ACS
+# (optionally breaking the build at this point if there are vulns above a given severity), pushes the
+# image to a registry, and adds it to the Anchore Enterprise queue
 
 name: Anchore Weekly
 
@@ -46,12 +47,9 @@ jobs:
       id: scan
       with:
         image: ${{ env.IMAGE }}
-        registry-username: ${{ env.GITHUB_ACTOR }}
-        registry-password: ${{ secrets.GITHUB_TOKEN }}
         fail-build: false
         severity-cutoff: critical
-        acs-report-enable: true
-        
+        acs-report-enable: true        
     - name: Upload Anchore Scan SARIF Report
       uses: github/codeql-action/upload-sarif@v2
       with:
