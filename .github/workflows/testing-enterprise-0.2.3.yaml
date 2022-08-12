@@ -1,4 +1,4 @@
-name: Enterprise Demo Experimental anchorectl 0.2.3
+name: TEST Enterprise Workflow 0.2.3
 on: 
   #schedule:
   #  - cron: '52 23 * * 5'
