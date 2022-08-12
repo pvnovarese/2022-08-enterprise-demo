@@ -34,7 +34,7 @@ jobs:
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
     - name: Build Baseline Docker Image
       run: |
-        docker build . --file .drift-demo/Dockerfile-baseline --tag ${IMAGE}
+        docker build . --file .baseline/Dockerfile-baseline --tag ${IMAGE}
     - name: Push Baseline Docker Image
       run: |
         docker push ${IMAGE}
@@ -66,7 +66,7 @@ jobs:
         anchorectl system wait --timeout 10 
     - name: Add Baseline Image to Enterprise Queue
       run: | 
-        anchorectl image add --force --noautosubscribe --annotations build_tool=github --annotations build=baseline --annotations actor=${GITHUB_ACTOR} --dockerfile .drift-demo/Dockerfile-baseline ${IMAGE}
+        anchorectl image add --force --noautosubscribe --annotations build_tool=github --annotations build=baseline --annotations actor=${GITHUB_ACTOR} --dockerfile .baseline/Dockerfile-baseline ${IMAGE}
         anchorectl image wait ${IMAGE}
 
   Iteration-Build-Push:  
