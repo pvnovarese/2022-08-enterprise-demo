@@ -8,7 +8,7 @@
 #    plus installing anchorectl
 # 4) add annotation to note build tool (when available)
 
-name: Only anchorectl
+name: Expreimental anchorectl 0.2.3  
 
 on: 
   #push:
