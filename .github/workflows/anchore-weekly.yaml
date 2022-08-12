@@ -25,9 +25,7 @@ env:
 jobs:
 
   Build-Push:
-
     runs-on: ubuntu-latest
-    
     steps:
 
     - name: "Set environmental variables"
@@ -37,13 +35,39 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2      
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+    ### unnecessary?  I think this can be removed
+    #- name: Set up Docker Buildx
+    #  uses: docker/setup-buildx-action@v1
 
     - name: Build Image
       run: |
         docker build . --file Dockerfile --tag ${IMAGE}
 
+    - name: Login to Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
+
+    - name: Push Docker Image
+      run: |
+        docker push ${IMAGE}
+
+### not necessary
+#    - name: Archive Dockerfile
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: Dockerfile
+#        path: Dockerfile
+#        retention-days: 2
+
+  Grype-Scan-Action:
+    needs: Build-Push
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: "Set environmental variables"
+      run: |
+        echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}" >> $GITHUB_ENV
+
+    ### use the grype scan action to hydrate the Code Scanning Alerts in the Security tab
     - name: Scan Image
       uses: anchore/scan-action@v3
       id: scan
@@ -58,21 +82,8 @@ jobs:
       with:
         sarif_file: ${{ steps.scan.outputs.sarif }}
 
-    - name: Login to Registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${IMAGE_REGISTRY} -u ${GITHUB_ACTOR} --password-stdin
 
-    - name: Push Docker Image
-      run: |
-        docker push ${IMAGE}
-        
-    - name: Archive Dockerfile
-      uses: actions/upload-artifact@v2
-      with:
-        name: Dockerfile
-        path: Dockerfile
-        retention-days: 2
-
-  Scan-Analyze:
+  Enterprise-Scan:
     needs: Build-Push
     runs-on: ubuntu-latest
     
@@ -81,12 +92,10 @@ jobs:
     - name: "Set environmental variables"
       run: |
         echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}" >> $GITHUB_ENV
-    
-    - name: Download Dockerfile Artifact 
-      uses: actions/download-artifact@v2
-      with:
-        name: Dockerfile
-        
+
+    - name: Checkout Code
+      uses: actions/checkout@v2      
+            
     - name: Install anchore-cli
       run: |
         sudo apt-get install python3-pip
@@ -95,11 +104,11 @@ jobs:
         
     - name: Verify Anchore Ready and Reachable
       run: |
-        anchore-cli --debug system status 
+        anchore-cli system status 
         
     - name: Add to Enterprise Queue
       run: | 
-        anchore-cli image add --noautosubscribe --dockerfile ./Dockerfile ${IMAGE} --annotation actor=${GITHUB_ACTOR}
+        anchore-cli image add --noautosubscribe --force --dockerfile ./Dockerfile --annotation build_tool=github --annotation actor=${GITHUB_ACTOR} ${IMAGE}
         
     ### don't really need to wait if you're not going to activate subs afterwards
     #
