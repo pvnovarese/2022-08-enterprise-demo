@@ -39,6 +39,7 @@ steps:
       - anchorectl image add --no-auto-subscribe --force --wait ${ANCHORE_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
       # uncomment next command to gate on policy eval
       # - anchore-cli evaluate check ${ANCHORE_IMAGE}
+      # - if [ "$ANCHORE_FAIL_ON_POLICY" == "true" ] ; then anchorectl image check --fail-based-on-results --detail ${ANCHORE_IMAGE} ; fi
     stage: "test"
 
   promote:
