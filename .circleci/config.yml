@@ -14,18 +14,16 @@ jobs:
             docker push $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest  
   scan:
     docker:
-      - image: anchore/engine-cli:latest
+      - image: docker.io/pvnovarese/anchore-tools:main
     steps:
       - checkout
       - run:
           name: Anchore Scan
           command: |
             echo "Adding image to Anchore Engine"
-            anchore-cli image add --noautosubscribe --dockerfile ./Dockerfile $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest --annotation actor=${CIRCLE_PROJECT_USERNAME}
-            echo "Waiting for image analysis to complete"
-            anchore-cli image wait $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest
+            anchorectl image add --no-auto-subscribe --force --wait --dockerfile ./Dockerfile --annotation build_tool=circleci $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest 
             echo "Analysis complete"
-            if [ "$ANCHORE_FAIL_ON_POLICY" == "true" ] ; then anchore-cli evaluate check $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest  ; fi
+            if [ "$ANCHORE_FAIL_ON_POLICY" == "true" ] ; then anchorectl image check --fail-based-on-results --detail $DOCKER_USERNAME/$CIRCLE_PROJECT_REPONAME:circleci-latest  ; fi
 
 workflows:
   version: 2
@@ -58,7 +56,7 @@ workflows:
     jobs:
       - build:
          context:
-           - anchore  # in the "anchore" context, I've defined ANCHORE_CLI_URL, ANCHORE_CLI_USER, ANCHORE_CLI_PASS, ANCHORE_FAIL_ON_POLICY, DOCKER_USERNAME, and DOCKER_PASSWORD
+           - anchore  # in the "anchore" context, I've defined ANCHORE_CLI_URL, ANCHORE_CLI_USER, ANCHORE_CLI_PASS, ANCHORECTL_URL, ANCHORECTL_USERNAME, ANCHORECTL_PASSWORD, ANCHORE_FAIL_ON_POLICY, DOCKER_USERNAME, and DOCKER_PASSWORD
       - scan:
           context:
            - anchore
