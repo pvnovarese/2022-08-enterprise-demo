@@ -30,17 +30,15 @@ steps:
   test:
     title: "Scan with Anchore Enterprise"
     #image: quay.io/codefreshplugins/anchore-plugin:latest 
-    image: docker.io/pvnovarese/anchore-tools:latest
+    image: docker.io/pvnovarese/anchore-tools:main
     environment:
-      - ANCHORE_CLI_IMAGE=${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}:cf-dev
+      - ANCHORE_IMAGE=${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}:cf-dev
      # uncomment the following line if you want to break the pipeline for policy violation
      # - ANCHORE_FAIL_ON_POLICY=true
     commands:
-      #- /entrypoint.sh # only use this with the anchore-plugin image
-      - anchore-cli image add --noautosubscribe ${ANCHORE_CLI_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
-      - anchore-cli image wait ${ANCHORE_CLI_IMAGE}
+      - anchorectl image add --no-auto-subscribe --force --wait ${ANCHORE_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
       # uncomment next command to gate on policy eval
-      # - anchore-cli evaluate check ${ANCHORE_CLI_IMAGE}
+      # - anchore-cli evaluate check ${ANCHORE_IMAGE}
     stage: "test"
 
   promote:
@@ -57,10 +55,13 @@ steps:
     #image: quay.io/codefreshplugins/anchore-plugin:latest 
     image: docker.io/pvnovarese/anchore-tools:latest
     environment:
-      - ANCHORE_CLI_IMAGE=docker.io/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}:cf-${{CF_BRANCH}}
+      - ANCHORE_IMAGE=docker.io/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}:cf-${{CF_BRANCH}}
     commands:
-      - anchore-cli image add --noautosubscribe ${ANCHORE_CLI_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
-      - anchore-cli image wait ${ANCHORE_CLI_IMAGE}
-      - anchore-cli --debug subscription activate policy_eval ${ANCHORE_CLI_IMAGE}
-      - anchore-cli --debug subscription activate vuln_update ${ANCHORE_CLI_IMAGE}
+      ### if you don't want to mess with subscriptions then you don't need to use --wait
+      - anchorectl image add --no-auto-subscribe --force ${ANCHORE_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
+      ### if you do want to activate subscriptions, use this version with --force
+      #- anchorectl image add --no-auto-subscribe --force --wait ${ANCHORE_IMAGE} --annotation build_tool=codefresh --annotation build_id=${{CF_SHORT_REVISION}}
+      ### actual commands to activate subscriptions
+      #- anchorectl -o json subscription list -k ${ANCHORE_IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
+      #- anchorectl -o json subscription list -k ${ANCHORE_IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
     stage: "promote"
