@@ -53,7 +53,7 @@ steps:
   queue:
     title: "Add Promoted Image to Anchore Queue"
     #image: quay.io/codefreshplugins/anchore-plugin:latest 
-    image: docker.io/pvnovarese/anchore-tools:latest
+    image: docker.io/pvnovarese/anchore-tools:main
     environment:
       - ANCHORE_IMAGE=docker.io/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}:cf-${{CF_BRANCH}}
     commands:
