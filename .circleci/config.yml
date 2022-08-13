@@ -17,7 +17,7 @@ jobs:
       - image: docker.io/pvnovarese/anchore-tools:main
     steps:
       - checkout:
-          path: /tmp
+          path: /tmp/project
       - run:
           name: Anchore Scan
           command: |
