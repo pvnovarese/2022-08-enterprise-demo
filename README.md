@@ -15,3 +15,7 @@ Partial list of conditions that can be tested with this image:
 7. added anchorectl to demonstrate automatic go module detection (new in syft 0.42.0)
 8. wide variety of ruby, node, python, java installed with different licenses
 9. build drift detection via baseline dockerfile with minimal packages/dependencies
+
+## CICD Integrations
+
+The example Jenkinsfile in this repo uses the [Anchore Jenkins Plugin](https://plugins.jenkins.io/anchore-container-scanner/) but most CICD tools can integrate using our command-line utility, [anchorectl](https://docs.anchore.com/current/docs/deployment/anchorectl/).
