@@ -45,8 +45,10 @@ steps:
       - IMAGE="${DRONE_REPO}:${DRONE_BRANCH}-drone-dev"
       # add image to queue, pass actual dockerfile, then wait for results
       - anchorectl image add --force --no-auto-subscribe --wait --annotation build_tool=drone --dockerfile ./Dockerfile $${IMAGE}
-      # check evaluation and break the pipeline if the result is FAIL/STOP
-      - anchorectl image check --fail-based-on-results --detail $${IMAGE}
+      # check evaluation but do NOT break the pipeline if the result is FAIL/STOP, just get the result:
+      - anchorectl image check --detail $${IMAGE}
+      # check evaluation and break the pipeline if the result is FAIL/STOP:
+      #- anchorectl image check --fail-based-on-results --detail $${IMAGE}
       #
       # older anchore-cli commands (this is deprecated but might be useful for troubleshooting)
       #- anchore-cli image add $DRONE_REPO:$DRONE_BUILD_NUMBER 
