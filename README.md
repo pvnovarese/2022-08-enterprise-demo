@@ -19,3 +19,16 @@ Partial list of conditions that can be tested with this image:
 ## CICD Integrations
 
 The example Jenkinsfile in this repo uses the [Anchore Jenkins Plugin](https://plugins.jenkins.io/anchore-container-scanner/) but most CICD tools can integrate using our command-line utility, [anchorectl](https://docs.anchore.com/current/docs/deployment/anchorectl/).
+
+The general workflow for this would be
+
+1. install anchorectl in your runner:
+```curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b /usr/local/bin```
+2. build image normally
+3a. submit image to Anchore Enterprise API for scanning 
+```anchorectl image add --dockerfile ./Dockerfile image:tag```
+3b. scan image locally and upload sbom 
+
+Alternatively, if you want to pull the vulnerability assessment and/or policy compliance results:
+
+(something something subscriptions)
