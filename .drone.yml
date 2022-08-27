@@ -22,6 +22,7 @@ steps:
       # set the image name/tag:  
       # old version: DRONE_REPO:$DRONE_BUILD_NUMBER
       # note that in this case $DRONE_REPO only works because my github username and my docker hub username are the same
+      # we have to set IMAGE here instead of globally if we want to use other variables to construct it
       - IMAGE="${DRONE_REPO}:${DRONE_BRANCH}-drone-dev"
       - docker build --pull --no-cache -t $${IMAGE} .
       - echo "$${PASSWORD}" | docker login -u $${HUB_USER} --password-stdin
@@ -42,6 +43,7 @@ steps:
       ANCHORECTL_URL:
         from_secret: anchorectl_url
     commands:
+      # same variable as above
       - IMAGE="${DRONE_REPO}:${DRONE_BRANCH}-drone-dev"
       # add image to queue, pass actual dockerfile, then wait for results
       - anchorectl image add --force --no-auto-subscribe --wait --annotation build_tool=drone --dockerfile ./Dockerfile $${IMAGE}
@@ -96,6 +98,11 @@ steps:
       # this time we don't need to wait for the scan to complete and we don't need to check the result
       # just add the image to the queue and move on
       - anchorectl image add --force --no-auto-subscribe --annotation build_tool=drone --dockerfile ./Dockerfile $${IMAGE_PROD}
+      ### optional, if you want to activate subscriptions for this image:
+      ### if you want continuous updates if new vulns are found:
+      # - anchorectl subscription activate $${IMAGE_PROD} vuln_update
+      ### if you want continuous updates if the policy evaluation changes:
+      # - anchorectl subscription activate $${IMAGE_PROD} policy_eval
     volumes:
       - name: docker_sock
         path: /var/run/docker.sock
