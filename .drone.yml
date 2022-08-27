@@ -63,7 +63,8 @@ steps:
           anchorectl image check --detail --fail-based-on-results $IMAGE ; 
         else 
           anchorectl image check --detail $IMAGE ; 
-        fi    volumes:
+        fi    
+    volumes:
       - name: docker_sock
         path: /var/run/docker.sock
         
