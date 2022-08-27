@@ -34,7 +34,14 @@ steps:
   - name: Scan Image
     # submit image to Anchore for scanning, and optionally break pipeline based on results
     # using my anchore-tools until anchorectl 1.0.0 ships
+    pull: always
     image: docker.io/pvnovarese/anchore-tools:main
+    ###
+    ### Optionally, if you don't want to use pvnovarese/anchore-tools image and would prefer to use something
+    ### standard like alpine/ubuntu etc, you can just install anchorectl on the fly with
+    ### curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b /usr/local/bin
+    ### you'll still need the same three environment vars for user/pass/url as below.
+    ###
     environment: 
       ANCHORECTL_USERNAME:
         from_secret: anchorectl_username
@@ -43,22 +50,16 @@ steps:
       ANCHORECTL_URL:
         from_secret: anchorectl_url
     commands:
-      # same variable as above
+      ### same variable as above
       - IMAGE="${DRONE_REPO}:${DRONE_BRANCH}-drone-dev"
-      # add image to queue, pass actual dockerfile, then wait for results
+      ### if you're having trouble connecting, anchorectl system status can be useful for troubleshooting:
+      # - anchorectl -v system status
+      ### add image to queue, pass actual dockerfile, then wait for results
       - anchorectl image add --force --no-auto-subscribe --wait --annotation build_tool=drone --dockerfile ./Dockerfile $${IMAGE}
-      # check evaluation but do NOT break the pipeline if the result is FAIL/STOP, just get the result:
+      ### check evaluation but do NOT break the pipeline if the result is FAIL/STOP, just get the result:
       - anchorectl image check --detail $${IMAGE}
-      # check evaluation and break the pipeline if the result is FAIL/STOP:
+      ### check evaluation and break the pipeline if the result is FAIL/STOP:
       #- anchorectl image check --fail-based-on-results --detail $${IMAGE}
-      #
-      # older anchore-cli commands (this is deprecated but might be useful for troubleshooting)
-      #- anchore-cli image add $DRONE_REPO:$DRONE_BUILD_NUMBER 
-      #- anchore-cli image wait $DRONE_REPO:$DRONE_BUILD_NUMBER 
-      #- anchore-cli evaluate check $DRONE_REPO:$DRONE_BUILD_NUMBER
-      #
-      # another option if you don't want to use my personal image, just use the standard docker image and run the tool this way:
-      # - docker run --rm -e ANCHORE_CLI_URL=$ANCHORE_CLI_URL -e ANCHORE_CLI_USER=$ANCHORE_CLI_USER -e ANCHORE_CLI_PASS=$ANCHORE_CLI_PASS anchore/engine-cli sh -c "anchore-cli image add --noautosubscribe $DRONE_REPO:drone-dev --annotation build_tool=drone --annotation build_number=$DRONE_BUILD_NUMBER && anchore-cli image wait $DRONE_REPO:drone-dev && anchore-cli evaluate check $DRONE_REPO:drone-dev"
     volumes:
       - name: docker_sock
         path: /var/run/docker.sock
