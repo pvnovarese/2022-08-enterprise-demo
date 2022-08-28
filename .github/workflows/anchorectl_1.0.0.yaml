@@ -101,7 +101,7 @@ jobs:
         
     - name: Add Promoted Image to Anchore Queue
       run: |
-        anchorectl image add --force --noautosubscribe --dockerfile Dockerfile ${IMAGE}
+        anchorectl image add --force --no-auto-subscribe --dockerfile Dockerfile ${IMAGE}
         ### if we're going to do anything with subscriptions, we should add --wait to this anchorectl command
         ### otherwise, we can just queue it up and move on
 
