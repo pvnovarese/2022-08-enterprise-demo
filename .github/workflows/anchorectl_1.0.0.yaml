@@ -55,6 +55,8 @@ jobs:
     - name: Install anchorectl CLI Tool
       run: |
         mkdir -p $HOME/.local/bin
+        ### we need syft if we're going to generate sbom locally
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b $HOME/.local/bin
         curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b $HOME/.local/bin
         chmod 0755 $HOME/.local/bin/anchorectl
         export PATH="$HOME/.local/bin/:$PATH"
@@ -67,7 +69,7 @@ jobs:
         
     - name: Generate SBOM and Push to Anchore
       run: |
-        anchorectl image sbom --overwrite --wait --dockerfile ./Dockerfile ${IMAGE_SHA}
+        syft -o json packages ${IMAGE_SHA} | tee ${GITHUB_REPOSITORY}-sbom.json | anchorectl image add --wait --dockerfile ./Dockerfile ${IMAGE_SHA} --from -
         
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
@@ -123,3 +125,12 @@ jobs:
         name: evaluation-report
         path: anchore-*.txt
         retention-days: 14
+        
+    - name: Archive SBOM
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: sbom
+        path: ${{GITHUB_REPOSITORY}}-sbom.json
+        retention-days: 14
+
