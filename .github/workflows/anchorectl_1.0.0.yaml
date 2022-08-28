@@ -125,12 +125,3 @@ jobs:
         name: evaluation-report
         path: anchore-*.txt
         retention-days: 14
-        
-    - name: Archive SBOM
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: sbom
-        path: ${{GITHUB_REPOSITORY}}-sbom.json
-        retention-days: 14
-
