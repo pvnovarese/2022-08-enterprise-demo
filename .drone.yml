@@ -7,6 +7,15 @@ trigger:
   - main
   event:
   - push
+  
+### things to do:
+### 1)  is there a way to set global variables (constructed from other variables) in drone?
+###     e.g. in codefresh we can "cf_export ANCHORE_REPO=${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}"
+###     and use that across steps.
+### 1a) clean up the anchorectl secret/variable declarations
+### 2)  the subscription activate stuff is not robust, I think it assumes the registry is
+###     docker hub and I haven't tested it sufficently.  If 1) is possible, making this
+###     more robust will be easier.
 
 steps:
 
