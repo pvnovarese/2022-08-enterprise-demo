@@ -1,4 +1,8 @@
-name: TEST Enterprise Workflow 0.2.3
+name: Enterprise Demo Setup Workflow anchorectl 1.0.0
+
+### to do:
+### 1) clean up repository secret names for new anchorectl model instead of using old anchore-cli env var names
+
 on: 
   #schedule:
   #  - cron: '52 23 * * 5'
@@ -12,7 +16,7 @@ env:
   ANCHORECTL_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_TAG: test
+  IMAGE_TAG: demo
 
 jobs:
 
@@ -32,7 +36,7 @@ jobs:
       
     - name: Build Baseline Docker Image
       run: |
-        docker build . --file .baseline/Dockerfile-baseline --tag ${IMAGE}
+        docker build . --no-cache --pull --file .baseline/Dockerfile-baseline --tag ${IMAGE}
         
     - name: Push Baseline Docker Image
       run: |
@@ -53,19 +57,39 @@ jobs:
       
     - name: Install CLI Tools
       run: |
-        ### install anchorectl 
-        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C /usr/local/bin/
         ### install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
         #curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        ### install anchorectl 
+        curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b $HOME/.local/bin
+        chmod 0755 $HOME/.local/bin/anchorectl
+        export PATH="$HOME/.local/bin/:$PATH"
     
-    ### broken in 0.2.3, should be fixed in next release
+    ### this isn't really necessary (we'll bomb out on the next step anyway if the API isn't reachable), but is useful for debugging 
     #- name: Verify Anchore Ready and Reachable
     #  run: |
-    #    anchorectl system wait --timeout 10 
-        
+    #    anchorectl system wait --timeout 10
+    #    anchorectl system status
+    
     - name: Add Baseline Image to Enterprise Queue
       run: | 
         anchorectl image add --force --no-auto-subscribe --wait --annotation build_tool=github --annotation build=baseline --annotation actor=${GITHUB_ACTOR} --dockerfile .baseline/Dockerfile-baseline ${IMAGE}
+        
+    ### this isn't really necessary, some people want to archive this stuff
+    #- name: Pull vulnerability assessment
+    #  run: |
+    #    anchorectl image vuln ${IMAGE_DEV} 
+    #    ### if you want to keep a copy of the vuln assessment as a build artifact:
+    #    # anchorectl image vuln ${IMAGE_DEV} | tee anchore-vuln.txt
+    #- name: Pull policy evaluation
+    #  run: |      
+    #    ### If ANCHORE_FAIL_ON_POLICY is set, break the pipeline if there is a policy violation
+    #    set -o pipefail
+    #    if [ "$ANCHORE_FAIL_ON_POLICY" == "true" ] ; then 
+    #      anchorectl image check --detail --fail-based-on-results ${IMAGE_DEV} ; 
+    #    else 
+    #      anchorectl image check --detail ${IMAGE_DEV} ; 
+    #    fi    
+    #    ### again, if you want to keep an artifact of the policy evaluation, just pipe the image check output to "tee anchore-policy.txt" or similar
         
         
   Iteration-Build-Push:  
@@ -85,7 +109,7 @@ jobs:
       
     - name: Build Iterated Docker Image
       run: |
-        docker build . --file Dockerfile --tag ${IMAGE}
+        docker build . --no-cache --pull --file Dockerfile --tag ${IMAGE}
         
     - name: Push Iterated Docker Image
       run: |
@@ -133,8 +157,12 @@ jobs:
       
     - name: Install CLI Tools
       run: |
+        ### install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
+        #curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
         ### install anchorectl 
-        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C /usr/local/bin/
+        curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b $HOME/.local/bin
+        chmod 0755 $HOME/.local/bin/anchorectl
+        export PATH="$HOME/.local/bin/:$PATH"
         
     - name: Add Iterated Image to Enterprise Queue
       run: | 
@@ -154,8 +182,12 @@ jobs:
       
     - name: Install CLI Tools
       run: |
+        ### install syft (for local SPDX/CycloneDX sbom generation, this will be implemented directly in anchorctl in the future as well)
+        #curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
         ### install anchorectl 
-        curl https://anchorectl-releases.anchore.io/anchorectl/v0.2.3/anchorectl_0.2.3_linux_amd64.tar.gz | tar xzvf - -C /usr/local/bin/
+        curl -sSfL  https://anchorectl-releases.anchore.io/anchorectl/install.sh  | sh -s -- -b $HOME/.local/bin
+        chmod 0755 $HOME/.local/bin/anchorectl
+        export PATH="$HOME/.local/bin/:$PATH"
 
     ### this isn't really necessary, some people want to archive this stuff
     - name: Pull Vulnerability List
@@ -181,7 +213,7 @@ jobs:
     #    anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "policy_eval") | .subscriptionId' | xargs anchorectl subscription activate
     #    anchorectl -o json subscription list -k ${IMAGE} | jq -r '.[] | select (.subscriptionType == "vuln_update") | .subscriptionId' | xargs anchorectl subscription activate
 
-    - name: Archive Vulnerabilities
+    - name: Archive Reports
       if: always()
       uses: actions/upload-artifact@v2
       with:

@@ -2,7 +2,7 @@
 # container image scan, all using only anchorectl
 #
 
-name: TEST anchorectl 0.2.3  
+name: Deprecated anchorectl 0.2.3  
 
 on: 
   #push:
