@@ -101,7 +101,7 @@ jobs:
         
         
 
-Promote-Deploy:  
+  Promote-Deploy:  
     needs: Scan-Evaluate
     runs-on: ubuntu-latest
     steps:
