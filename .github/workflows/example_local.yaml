@@ -2,7 +2,7 @@
 ## environment, then pushing the sbom to the Anchore Enterprise
 ## API rather than pushing an image and having the Anchore
 ## backend analyzers do the scanning.  Most people should use
-## one of the other workflows instead.
+## the "example enterprise workflow" instead.
 ##
 ## todo list:
 ## 0) let's update these secrets (ANCHORECTL_USERNAME, ANCHORECTL_PASSWORD, ANCHORECTL_URL)
@@ -14,7 +14,7 @@
 ## 5) break this into multiple jobs (need to figure out how to build an image in one job
 ##    and use it in a 2nd job without pushing it anywhere
 
-name: Stable Local Scan/SBOM Workflow
+name: Example Local Scan/SBOM Workflow
 
 on: 
   schedule:
