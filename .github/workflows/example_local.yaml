@@ -5,13 +5,9 @@
 ## the "example enterprise workflow" instead.
 ##
 ## todo list:
-## 0) let's update these secrets (ANCHORECTL_USERNAME, ANCHORECTL_PASSWORD, ANCHORECTL_URL)
-## 1) add evaluate check 
-## 2) toggle subscriptions 
-## 3) (possibly) use my own anchore-tools iamge instead of ubuntu 
+## 1) (possibly) use my own anchore-tools iamge instead of ubuntu 
 ##    plus installing anchorectl
-## 4) add annotation to note build tool
-## 5) break this into multiple jobs (need to figure out how to build an image in one job
+## 2) break this into multiple jobs (need to figure out how to build an image in one job
 ##    and use it in a 2nd job without pushing it anywhere
 
 name: Example Local Scan/SBOM Workflow
@@ -28,9 +24,9 @@ on:
         description: 'Manual Build'  
 
 env:
-  ANCHORECTL_ANCHORE_USER: ${{ secrets.ANCHORE_CLI_USER }}
-  ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
-  ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_USERNAME }}
+  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORCTL_PASSWORD }}
+  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_URL }}
   IMAGE_REGISTRY: ghcr.io
   ### if you want to gate on policy failures, set this to "true"
   ANCHORE_FAIL_ON_POLICY: false
