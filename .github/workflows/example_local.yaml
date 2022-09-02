@@ -32,6 +32,10 @@ env:
   ANCHORECTL_ANCHORE_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORECTL_ANCHORE_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   IMAGE_REGISTRY: ghcr.io
+  ### if you want to gate on policy failures, set this to "true"
+  ANCHORE_FAIL_ON_POLICY: false
+        
+
 
 jobs:
 
@@ -45,8 +49,7 @@ jobs:
       run: |
         echo "IMAGE_SHA=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_SHA}" >> $GITHUB_ENV
         echo "IMAGE=${IMAGE_REGISTRY}/${GITHUB_REPOSITORY}:gh-anchorectl-${GITHUB_REF_NAME}" >> $GITHUB_ENV
-        ### if you want to gate on policy failures, uncomment this
-        #echo "ANCHORE_FAIL_ON_POLICY=true"
+        echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
         
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -72,20 +75,20 @@ jobs:
         
     - name: Generate SBOM and Push to Anchore
       run: |
-        syft -o json packages ${IMAGE_SHA} | tee ${GITHUB_REPOSITORY}-sbom.json | anchorectl image add --wait --dockerfile ./Dockerfile ${IMAGE_SHA} --from -
+        syft -o json packages ${IMAGE_SHA} | tee ${REPOSITORY_NAME}-sbom.json | anchorectl image add --wait --dockerfile ./Dockerfile ${IMAGE_SHA} --from -
         ### if you want to also keep a copy of the sbom (syft/anchore native format) locally as a build artifact, something like this:
-        # syft -o json packages ${IMAGE_DEV} | tee ${GITHUB_REPOSITORY}-sbom.json | anchorectl image add...
+        # syft -o json packages ${IMAGE_SHA} | tee ${REPOSITORY_NAME}-sbom.json | anchorectl image add...
         ### advanced, generate the local sbom in spdx or cyclone dx format 
-        # syft -o json -o spdx-json=./sbom.spdx.json -o cyclonedx-json=./sbom.cyclonedx.json packages ${IMAGE_DEV} | anchorectl image add ...
+        # syft -o json -o spdx-json=./${REPOSITORY_NAME}.spdx.json -o cyclonedx-json=./${REPOSITORY_NAME}.cyclonedx.json packages ${IMAGE_SHA} | anchorectl image add ...
         ###
         ### this last bit is just to correct for a bug in anchorectl 1.0.0,
         ### even though we use --no-auto-subscribe in the image add above, it 
         ### doesn't seem to work as expected when uploading a sbom (as opposed
         ### to just passing an image name/location to the API to be scanned
         ### in the backend analyzer processes)
-        anchorectl subscription list | grep ${IMAGE_DEV} ### debugging
-        anchorectl subscription deactivate ${IMAGE_DEV} tag_update
-        anchorectl subscription list | grep ${IMAGE_DEV} ### debugging
+        anchorectl subscription list | grep ${IMAGE_SHA} ### debugging
+        anchorectl subscription deactivate ${IMAGE_SHA} tag_update
+        anchorectl subscription list | grep ${IMAGE_SHA} ### debugging
         
     ### this isn't really necessary, some people want to archive this stuff
     #- name: Pull Vulnerability List
@@ -112,6 +115,7 @@ jobs:
     
     ### policy evaluation could be used as a gate, or insert whatever other logic you want before this point,
     ### up to now, the image hasn't been pushed anywhere, now we're going to "promote" it and push to registry
+    
     - name: Re-Tag Image
       run: |
         docker tag ${IMAGE_SHA} ${IMAGE}
