@@ -8,7 +8,7 @@
 #    plus installing anchorectl
 # 4) add annotation to note build tool (when available)
 
-name: Stable anchorectl 0.2.0
+name: Deprecated anchorectl 0.2.0
 
 on: 
   schedule:
