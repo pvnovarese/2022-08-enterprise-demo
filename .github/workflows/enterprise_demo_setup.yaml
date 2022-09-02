@@ -12,9 +12,9 @@ on:
         description: 'Manual Build'  
 
 env:
-  ANCHORECTL_USERNAME: ${{ secrets.ANCHORE_CLI_USER }}
-  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
-  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_USERNAME }}
+  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORCTL_PASSWORD }}
+  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_URL }}
   IMAGE_REGISTRY: ghcr.io
   IMAGE_TAG: demo
 
