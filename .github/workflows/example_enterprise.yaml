@@ -5,9 +5,6 @@
 
 name: Example Enterprise Workflow
 
-### to do:
-### 1) clean up repository secret names for new anchorectl model instead of using old anchore-cli env var names
-
 on: 
   schedule:
     - cron: '07 15 * * 1'
@@ -17,9 +14,9 @@ on:
         description: 'Manual Build'  
 
 env:
-  ANCHORECTL_USERNAME: ${{ secrets.ANCHORE_CLI_USER }}
-  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
-  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
+  ANCHORECTL_USERNAME: ${{ secrets.ANCHORECTL_USERNAME }}
+  ANCHORECTL_PASSWORD: ${{ secrets.ANCHORCTL_PASSWORD }}
+  ANCHORECTL_URL: ${{ secrets.ANCHORECTL_URL }}
   IMAGE_REGISTRY: ghcr.io
   ### if you want to gate on policy, change this to "true"
   ANCHORE_FAIL_ON_POLICY: false
