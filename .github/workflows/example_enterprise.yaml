@@ -9,8 +9,8 @@ name: Example Enterprise Workflow
 ### 1) clean up repository secret names for new anchorectl model instead of using old anchore-cli env var names
 
 on: 
-  #schedule:
-  #  - cron: '52 23 * * 5'
+  schedule:
+    - cron: '07 15 * * 1'
   workflow_dispatch:
     inputs:
       mode:
