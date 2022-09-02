@@ -122,7 +122,7 @@ jobs:
 
     - name: Promote image (re-tag, login to ghcr,io, push)
       run: |
-        docker tag ${IMAGE_DEV} ${IMAGE_PROD}
+        docker tag ${IMAGE_TEST} ${IMAGE_PROD}
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
         docker push ${IMAGE_PROD}
         
