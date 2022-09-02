@@ -1,4 +1,8 @@
-name: TEST Enterprise Demo Setup Workflow anchorectl 1.0.0
+name: Enterprise Demo Setup Workflow anchorectl 1.0.0
+
+### to do:
+### 1) clean up repository secret names for new anchorectl model instead of using old anchore-cli env var names
+
 on: 
   #schedule:
   #  - cron: '52 23 * * 5'
@@ -12,7 +16,7 @@ env:
   ANCHORECTL_PASSWORD: ${{ secrets.ANCHORE_CLI_PASS }}
   ANCHORECTL_URL: ${{ secrets.ANCHORECTL_ANCHORE_URL }}
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_TAG: test
+  IMAGE_TAG: demo
 
 jobs:
 
