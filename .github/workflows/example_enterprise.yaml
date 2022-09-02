@@ -122,8 +122,9 @@ jobs:
 
     - name: Promote image (re-tag, login to ghcr,io, push)
       run: |
-        docker tag ${IMAGE_TEST} ${IMAGE_PROD}
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+        docker pull ${IMAGE_TEST}
+        docker tag ${IMAGE_TEST} ${IMAGE_PROD}
         docker push ${IMAGE_PROD}
         
     - name: Add promoted image to Anchore queue
