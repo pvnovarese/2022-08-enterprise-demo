@@ -11,8 +11,8 @@
 name: Deprecated anchorectl 0.2.0
 
 on: 
-  schedule:
-    - cron: '52 13 * * 1'
+  #schedule:
+  #  - cron: '52 13 * * 1'
   #push:
   #  branches:
   #    - main
